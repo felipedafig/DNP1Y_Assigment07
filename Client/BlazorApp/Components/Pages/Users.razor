@@ -1,0 +1,192 @@
+@page "/users"
+@rendermode InteractiveServer
+
+@using Shared.DTOs.Users
+@using BlazorApp.Services
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Users</PageTitle>
+
+<h1>User Management</h1>
+<hr />
+
+<div class="mb-3">
+    @if (!ShowAddForm)
+    {
+        <button class="btn btn-success" @onclick="ShowAddUserForm">Add New User</button>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5>Add New User</h5>
+            </div>
+            <div class="card-body">
+                <EditForm Model="newUser" OnValidSubmit="HandleValidSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <InputText @bind-Value="newUser.Username" class="form-control" />
+                        <ValidationMessage For="() => newUser.Username" class="text-danger" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <InputText type="password" @bind-Value="newUser.Password" class="form-control" />
+                        <ValidationMessage For="() => newUser.Password" class="text-danger" />
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@IsProcessing">
+                            @if (IsProcessing)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Add User
+                        </button>
+                        <button type="button" class="btn btn-secondary" @onclick="CancelAddUser">Cancel</button>
+                    </div>
+                </EditForm>
+                
+                @if (!string.IsNullOrEmpty(AddUserErrorMessage))
+                {
+                    <div class="alert alert-danger mt-2">@AddUserErrorMessage</div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@if (IsLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading users...</p>
+    </div>
+}
+else if (ErrorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <h5>Error Loading Users</h5>
+        <p>@ErrorMessage</p>
+        <button class="btn btn-outline-danger" @onclick="LoadUsers">Try Again</button>
+    </div>
+}
+else if (UserList is null || !UserList.Any())
+{
+    <div class="alert alert-info">
+        <h5>No Users Found</h5>
+        <p>There are no users in the system yet.</p>
+        @if (!ShowAddForm)
+        {
+            <button class="btn btn-primary" @onclick="ShowAddUserForm">Add First User</button>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">All Users (@UserList.Count)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in UserList)
+                        {
+                            <tr>
+                                <td>@user.Id</td>
+                                <td>@user.Username</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UserDto>? UserList;
+    private string? ErrorMessage;
+    private bool IsLoading = false;
+    private bool ShowAddForm = false;
+    private CreateUserDto newUser = new() { Username = "", Password = "" };
+    private string? AddUserErrorMessage;
+    private bool IsProcessing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            UserList = await UserService.GetManyUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to load users: {ex.Message}";
+            UserList = null;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowAddUserForm()
+    {
+        ShowAddForm = true;
+        newUser = new() { Username = "", Password = "" };
+        AddUserErrorMessage = null;
+    }
+
+    private void CancelAddUser()
+    {
+        ShowAddForm = false;
+        newUser = new() { Username = "", Password = "" };
+        AddUserErrorMessage = null;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        AddUserErrorMessage = null;
+        IsProcessing = true;
+        
+        try
+        {
+            await UserService.AddUserAsync(newUser);
+            await LoadUsers(); // Refresh the user list
+            ShowAddForm = false;
+            newUser = new() { Username = "", Password = "" };
+        }
+        catch (Exception ex)
+        {
+            AddUserErrorMessage = $"Failed to add user: {ex.Message}";
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+}

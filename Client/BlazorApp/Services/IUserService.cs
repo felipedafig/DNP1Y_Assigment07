@@ -1,0 +1,10 @@
+using Shared.DTOs.Users;
+
+namespace BlazorApp.Services;
+
+public interface IUserService
+{
+    Task<UserDto> AddUserAsync(CreateUserDto request);
+    Task<List<UserDto>> GetManyUsersAsync();
+    Task<UserDto> GetSingleUserAsync(int id);
+}

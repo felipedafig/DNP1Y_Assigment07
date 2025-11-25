@@ -1,3 +1,9 @@
+using Microsoft.EntityFrameworkCore;
+using Models;
+using System.IO;
+
+namespace EfcRepositories;
+
 public class AppContext : DbContext
 {
     public DbSet<Post> Posts => Set<Post>();
@@ -6,6 +12,9 @@ public class AppContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite("Data Source=app.db");
+        // Path relative to WebAPI1 directory (where the app runs)
+        var dbPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "EfcRepositories", "app.db");
+        var fullPath = Path.GetFullPath(dbPath);
+        optionsBuilder.UseSqlite($"Data Source={fullPath}");
     }
 }

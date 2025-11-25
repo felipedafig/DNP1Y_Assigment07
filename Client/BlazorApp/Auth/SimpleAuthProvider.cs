@@ -11,8 +11,6 @@ public class SimpleAuthProvider : AuthenticationStateProvider
 {
     private readonly HttpClient httpClient;
     private readonly IJSRuntime jsRuntime;
-    private ClaimsPrincipal currentClaimsPrincipal;
-
     public SimpleAuthProvider(HttpClient httpClient, IJSRuntime jsRuntime)
     {
         this.httpClient = httpClient;
@@ -52,12 +50,12 @@ public class SimpleAuthProvider : AuthenticationStateProvider
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        string userAsJson = "";
+        string userAsJson;
         try
         {
             userAsJson = await jsRuntime.InvokeAsync<string>("sessionStorage.getItem", "currentUser");
         }
-        catch (InvalidOperationException e)
+        catch (InvalidOperationException)
         {
             return new AuthenticationState(new());
         }
@@ -67,20 +65,20 @@ public class SimpleAuthProvider : AuthenticationStateProvider
         }
         UserDto userDto = JsonSerializer.Deserialize<UserDto>(userAsJson)!;
         List<Claim> claims = new List<Claim>()
-    {
-        new Claim(ClaimTypes.Name, userDto.Username),
-        new Claim("Id", userDto.Id.ToString()),
-    };
+        {
+            new Claim(ClaimTypes.Name, userDto.Username),
+            new Claim("Id", userDto.Id.ToString()),
+        };
         ClaimsIdentity identity = new ClaimsIdentity(claims, "apiauth");
         ClaimsPrincipal claimsPrincipal = new ClaimsPrincipal(identity);
         return new AuthenticationState(claimsPrincipal);
     }
 
-public async Task Logout()
-{
-    await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "currentUser", "");
-    NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new())));
-}
+    public async Task Logout()
+    {
+        await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "currentUser", "");
+        NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(new())));
+    }
 
 }
 

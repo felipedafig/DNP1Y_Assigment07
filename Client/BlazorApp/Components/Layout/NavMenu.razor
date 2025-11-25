@@ -60,7 +60,7 @@
 </div>
 
 @code {
-    [CascadingParameter] public Task<AuthenticationState> State { get; set; }
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
     
     private string? userName;
     private bool isAuthenticated = false;

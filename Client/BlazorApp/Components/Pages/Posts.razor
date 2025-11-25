@@ -1,16 +1,55 @@
 ﻿@page "/posts"
-@attribute [Authorize]
-@rendermode InteractiveServer
+@rendermode RenderMode.InteractiveServer
 
 @using BlazorApp.Services
 @using Shared.DTOs.Posts
 @using Shared.DTOs.Users
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using System.ComponentModel.DataAnnotations
 @inject IPostService PostService
 @inject IUserService UserService
+@inject NavigationManager NavigationManager
 
 <h1>Posts</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Create New Post</h5>
+    </div>
+    <div class="card-body">
+        <EditForm Model="@newPost" OnValidSubmit="@CreatePost">
+            <DataAnnotationsValidator />
+            <div class="mb-3">
+                <label for="postTitle" class="form-label">Title</label>
+                <InputText id="postTitle" class="form-control" @bind-Value="newPost.Title" />
+                <ValidationMessage For="@(() => newPost.Title)" />
+            </div>
+            <div class="mb-3">
+                <label for="postBody" class="form-label">Body</label>
+                <InputTextArea id="postBody" class="form-control" rows="4" @bind-Value="newPost.Body" />
+                <ValidationMessage For="@(() => newPost.Body)" />
+            </div>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @errorMessage
+                </div>
+            }
+            <button type="submit" class="btn btn-primary" disabled="@isCreating">
+                @if (isCreating)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <span>Creating...</span>
+                }
+                else
+                {
+                    <span>Create Post</span>
+                }
+            </button>
+        </EditForm>
+    </div>
+</div>
 
 @if (posts is null)
 {
@@ -35,7 +74,10 @@ else
                     </a>
                     @if (userId == p.UserId)
                     {
-                        <button class="btn btn-sm btn-warning ms-2" @onclick="() => EditPost(p.Id)">Edit</button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-warning" @onclick="() => EditPost(p.Id)">Edit</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => ConfirmDeletePost(p.Id)">Delete</button>
+                        </div>
                     }
                 </div>
             </div>
@@ -43,41 +85,134 @@ else
     </div>
 }
 
+<!-- Edit Post Modal -->
+@if (showEditModal && editingPost != null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Post</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@editingPost" OnValidSubmit="@UpdatePost">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label for="editPostTitle" class="form-label">Title</label>
+                            <InputText id="editPostTitle" class="form-control" @bind-Value="editingPost.Title" />
+                            <ValidationMessage For="@(() => editingPost.Title)" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="editPostBody" class="form-label">Body</label>
+                            <InputTextArea id="editPostBody" class="form-control" rows="4" @bind-Value="editingPost.Body" />
+                            <ValidationMessage For="@(() => editingPost.Body)" />
+                        </div>
+                        @if (!string.IsNullOrEmpty(editErrorMessage))
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @editErrorMessage
+                            </div>
+                        }
+                        <div class="modal-footer px-0">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isUpdating">
+                                @if (isUpdating)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Updating...</span>
+                                }
+                                else
+                                {
+                                    <span>Update Post</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Post Confirmation Modal -->
+@if (showDeleteModal && deletingPostId > 0)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Post</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this post? This action cannot be undone.</p>
+                    @if (!string.IsNullOrEmpty(deleteErrorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @deleteErrorMessage
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal" disabled="@isDeleting">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeletePost" disabled="@isDeleting">
+                        @if (isDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Deleting...</span>
+                        }
+                        else
+                        {
+                            <span>Delete Post</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    [CascadingParameter] public Task<AuthenticationState> State { get; set; }
-    
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; } = default!;
+
     private List<PostDto>? posts;
     private Dictionary<int, string> _authorNames = new();
     private int userId;
-    private string? userName;
-    private bool isAuthenticated = false;
+    private CreatePostDto newPost = new() { Title = "", Body = "", UserId = 0 };
+    private bool isCreating = false;
+    private string? errorMessage;
+    
+    // Edit modal state
+    private bool showEditModal = false;
+    private UpdatePostDto? editingPost;
+    private bool isUpdating = false;
+    private string? editErrorMessage;
+    
+    // Delete modal state
+    private bool showDeleteModal = false;
+    private int deletingPostId = 0;
+    private bool isDeleting = false;
+    private string? deleteErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         // Get the AuthenticationState
         AuthenticationState authenticationState = await State;
         ClaimsPrincipal claimsPrincipal = authenticationState.User;
-        
-        // Check if there is a ClaimsIdentity, or if that ClaimsIdentity is authenticated
-        if (claimsPrincipal.Identity is null || !claimsPrincipal.Identity.IsAuthenticated)
+
+        if (claimsPrincipal.Identity?.IsAuthenticated != true)
         {
-            // the user is not logged in
-            isAuthenticated = false;
+            NavigationManager.NavigateTo("/login");
+            return;
         }
-        else
+
+        string? userIdAsString = claimsPrincipal.Claims.FirstOrDefault(c => c.Type == "Id")?.Value;
+        if (int.TryParse(userIdAsString, out int parsedUserId))
         {
-            isAuthenticated = true;
-            // Get the username
-            userName = claimsPrincipal.Identity?.Name;
-            
-            // Get the list of Claims
-            IEnumerable<Claim> claims = claimsPrincipal.Claims;
-            
-            // Extract the user id from claims
-            string userIdAsString = claims.Single(c => c.Type == "Id").Value;
-            userId = int.Parse(userIdAsString);
+            userId = parsedUserId;
         }
-        
+
         await LoadPosts();
     }
 
@@ -121,8 +256,152 @@ else
 
     private void EditPost(int postId)
     {
-        // TODO: Implement edit post functionality
-        // For now, just show a message
-        Console.WriteLine($"Edit post {postId} clicked by user {userId}");
+        var post = posts?.FirstOrDefault(p => p.Id == postId);
+        if (post == null) return;
+        
+        editingPost = new UpdatePostDto
+        {
+            Id = post.Id,
+            Title = post.Title ?? "",
+            Body = post.Body ?? "",
+            UserId = post.UserId
+        };
+        
+        editErrorMessage = null;
+        showEditModal = true;
+    }
+    
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingPost = null;
+        editErrorMessage = null;
+    }
+    
+    private async Task UpdatePost()
+    {
+        if (editingPost == null)
+        {
+            return;
+        }
+        
+        if (userId == 0)
+        {
+            editErrorMessage = "User ID is not available. Please log in again.";
+            return;
+        }
+        
+        if (string.IsNullOrWhiteSpace(editingPost.Title) || string.IsNullOrWhiteSpace(editingPost.Body))
+        {
+            editErrorMessage = "Title and Body are required.";
+            return;
+        }
+        
+        isUpdating = true;
+        editErrorMessage = null;
+        
+        try
+        {
+            editingPost.UserId = userId;
+            await PostService.UpdatePostAsync(editingPost.Id, editingPost);
+            
+            // Close modal and reload posts
+            CloseEditModal();
+            await LoadPosts();
+        }
+        catch (Exception ex)
+        {
+            editErrorMessage = $"Failed to update post: {ex.Message}";
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private async Task CreatePost()
+    {
+        if (userId == 0)
+        {
+            errorMessage = "User ID is not available. Please log in again.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newPost.Title) || string.IsNullOrWhiteSpace(newPost.Body))
+        {
+            errorMessage = "Title and Body are required.";
+            return;
+        }
+
+        isCreating = true;
+        errorMessage = null;
+
+        try
+        {
+            newPost.UserId = userId;
+            await PostService.AddPostAsync(newPost);
+            
+            // Clear the form
+            newPost = new CreatePostDto { Title = "", Body = "", UserId = 0 };
+            
+            // Reload posts
+            await LoadPosts();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to create post: {ex.Message}";
+        }
+        finally
+        {
+            isCreating = false;
+        }
+    }
+    
+    private void ConfirmDeletePost(int postId)
+    {
+        deletingPostId = postId;
+        deleteErrorMessage = null;
+        showDeleteModal = true;
+    }
+    
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingPostId = 0;
+        deleteErrorMessage = null;
+    }
+    
+    private async Task DeletePost()
+    {
+        if (deletingPostId == 0)
+        {
+            return;
+        }
+        
+        if (userId == 0)
+        {
+            deleteErrorMessage = "User ID is not available. Please log in again.";
+            return;
+        }
+        
+        isDeleting = true;
+        deleteErrorMessage = null;
+        
+        try
+        {
+            await PostService.DeletePostAsync(deletingPostId);
+            
+            // Close modal and reload posts
+            CloseDeleteModal();
+            await LoadPosts();
+        }
+        catch (Exception ex)
+        {
+            deleteErrorMessage = $"Failed to delete post: {ex.Message}";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
     }
 }

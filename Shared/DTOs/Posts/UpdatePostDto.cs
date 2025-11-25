@@ -1,3 +1,5 @@
+namespace Shared.DTOs.Posts;
+
 public class UpdatePostDto
 {
     public required int Id { get; set; }

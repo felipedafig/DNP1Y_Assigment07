@@ -1,18 +1,25 @@
 namespace Models;
+
 public class Comment
 {
-
     public int Id { get; set; }
     public string? Body { get; set; }
     public int UserId { get; set; }
     public int PostId { get; set; }
 
+    // Navigation properties
+    public User? User { get; set; }
+    public Post? Post { get; set; }
 
-    public Comment(int Id, string Body, int UserId, int PostId)
+    public Comment()
     {
-        this.Id = Id;
-        this.Body = Body;
-        this.UserId = UserId;
-        this.PostId = PostId;
+    }
+
+    public Comment(int id, string body, int userId, int postId)
+    {
+        Id = id;
+        Body = body;
+        UserId = userId;
+        PostId = postId;
     }
 }

@@ -1,5 +1,4 @@
-
-
+using System.Collections.Generic;
 
 namespace Models;
 
@@ -10,12 +9,19 @@ public class Post
     public string? Body { get; set; }
     public int UserId { get; set; }
 
-    public Post(int Id, string? Title, string? Body, int UserId)
-    {
-        this.Id = Id;
-        this.Title = Title;
-        this.Body = Body;
-        this.UserId = UserId;
+    // Navigation properties
+    public User? User { get; set; }
+    public ICollection<Comment> Comments { get; set; } = new List<Comment>();
 
+    public Post()
+    {
+    }
+
+    public Post(int id, string? title, string? body, int userId)
+    {
+        Id = id;
+        Title = title;
+        Body = body;
+        UserId = userId;
     }
 }

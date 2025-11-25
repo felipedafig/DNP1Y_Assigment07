@@ -85,3 +85,14 @@ C:\Git_VIACode\DNP1Y\Assignment05\Client\BlazorApp\obj\Debug\net10.0\staticwebas
 C:\Git_VIACode\DNP1Y\Assignment05\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.csproj.Up2Date
 C:\Git_VIACode\DNP1Y\Assignment05\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.genruntimeconfig.cache
 C:\Git_VIACode\DNP1Y\Assignment05\Client\BlazorApp\obj\Debug\net10.0\ref\BlazorApp.dll
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.csproj.AssemblyReference.cache
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\rpswa.dswa.cache.json
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.AssemblyInfoInputs.cache
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.AssemblyInfo.cs
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.csproj.CoreCompileInputs.cache
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.MvcApplicationPartsAssemblyInfo.cache
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.sourcelink.json
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.dll
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\refint\BlazorApp.dll
+C:\Git_VIACode\DNP1Y\Assignment07\Client\BlazorApp\obj\Debug\net10.0\BlazorApp.pdb
